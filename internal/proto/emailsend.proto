@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "gitea.hoven.com/core/emailsender/api/emailsendpb;emailsendpb";
+
+
+service EmailSender {
+	rpc SendEmail(SendEmailRequest) returns (SendEmailResponse) {}
+}
+
+message SendEmailRequest {
+	string email = 1;
+	string subject = 2;
+	string body = 3;
+}
+
+message SendEmailResponse {
+}
