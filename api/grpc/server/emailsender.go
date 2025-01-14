@@ -17,6 +17,7 @@ import (
 
 type EmailHandler interface {
 	SendEmail(ctx context.Context, req *dto.SendEmailRequest) error
+	SendEmailAsync(ctx context.Context, req *dto.SendEmailRequest) error
 }
 
 type EmailSendGrpcServer struct {
@@ -30,8 +31,23 @@ func NewEmailSenderGrpcServer(handler EmailHandler) *EmailSendGrpcServer {
 	}
 }
 
-func (es *EmailSendGrpcServer) SendEmail(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
+func (es *EmailSendGrpcServer) Send(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
 	err := es.handler.SendEmail(ctx, &dto.SendEmailRequest{
+		Subject: in.GetSubject(),
+		From:    in.GetFrom(),
+		To:      in.GetTo(),
+		Body:    in.GetBody(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &emailsendpb.SendEmailResponse{}, nil
+}
+
+func (es *EmailSendGrpcServer) SendAsync(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
+	err := es.handler.SendEmailAsync(ctx, &dto.SendEmailRequest{
 		Subject: in.GetSubject(),
 		From:    in.GetFrom(),
 		To:      in.GetTo(),

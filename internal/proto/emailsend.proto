@@ -4,7 +4,8 @@ option go_package = "gitea.hoven.com/core/emailsender/api/emailsendpb;emailsendp
 
 
 service EmailSender {
-	rpc SendEmail(SendEmailRequest) returns (SendEmailResponse) {}
+	rpc Send(SendEmailRequest) returns (SendEmailResponse) {}
+	rpc SendAsync(SendEmailRequest) returns (SendEmailResponse) {}
 }
 
 message SendEmailRequest {

@@ -1,6 +1,6 @@
-// File:		config.go
+// File:		email.go
 // Created by:	Hoven
-// Created on:	2025-01-13
+// Created on:	2025-01-14
 //
 // This file is part of the Example Project.
 //
@@ -8,7 +8,22 @@
 
 package email
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
+
+type AsyncEmailTask struct {
+	Id          int
+	Subject     string
+	FromEmail   string
+	TargetEmail string
+	Msg         string
+}
+
+func (t *AsyncEmailTask) Key() string {
+	return fmt.Sprintf("AsyncEmailTask:%v:%v", t.Id, t.TargetEmail)
+}
 
 type Config struct {
 	SmtpServer string

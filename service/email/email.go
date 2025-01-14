@@ -1,12 +1,12 @@
 // File:		email.go
 // Created by:	Hoven
-// Created on:	2024-11-19
+// Created on:	2025-01-14
 //
 // This file is part of the Example Project.
 //
 // (c) 2024 Example Corp. All rights reserved.
 
-package email
+package emailSrv
 
 import (
 	"context"
@@ -15,52 +15,46 @@ import (
 	"net/smtp"
 	"time"
 
+	"gitea.hoven.com/core/emailsender/domain/email"
+	"gitea.hoven.com/core/emailsender/domain/event"
 	"github.com/go-puzzles/puzzles/goredis"
 	"github.com/go-puzzles/puzzles/plog"
 	"github.com/go-puzzles/puzzles/pqueue"
 	"github.com/pkg/errors"
 )
 
-type AsyncEmailTask struct {
-	Subject     string
-	FromEmail   string
-	TargetEmail string
-	Msg         string
+var _ email.Service = (*emailService)(nil)
+
+type emailService struct {
+	conf       *email.Config
+	auth       smtp.Auth
+	tlsConf    *tls.Config
+	eventBus   event.EventBus
+	asyncQueue *pqueue.RedisQueue[*email.AsyncEmailTask]
 }
 
-func (t *AsyncEmailTask) Key() string {
-	return "AsyncEmailTask" + t.TargetEmail
-}
-
-type EmailSender interface {
-	SendMsg(ctx context.Context, subject, from, target string, msg []byte) error
-	AsyncSendMsg(ctx context.Context, task *AsyncEmailTask) error
-}
-
-type emailSender struct {
-	conf    *Config
-	auth    smtp.Auth
-	tlsConf *tls.Config
-	queue   *pqueue.RedisQueue[*AsyncEmailTask]
-}
-
-func NewNetEasySender(conf *Config, redisClient *goredis.PuzzleRedisClient) *emailSender {
+func NewEmailService(
+	conf *email.Config,
+	eventBus event.EventBus,
+	redisClient *goredis.PuzzleRedisClient,
+) *emailService {
 	auth := smtp.PlainAuth("", conf.Identifier, conf.Credential, conf.SmtpServer)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 		ServerName:         conf.SmtpServer,
 	}
 
-	queue := pqueue.NewRedisQueueWithClient[*AsyncEmailTask](redisClient, conf.AsyncQueue)
-	return &emailSender{
-		conf:    conf,
-		auth:    auth,
-		tlsConf: tlsConfig,
-		queue:   queue,
+	asyncQueue := pqueue.NewRedisQueueWithClient[*email.AsyncEmailTask](redisClient, conf.AsyncQueue)
+	return &emailService{
+		conf:       conf,
+		auth:       auth,
+		tlsConf:    tlsConfig,
+		eventBus:   eventBus,
+		asyncQueue: asyncQueue,
 	}
 }
 
-func (e *emailSender) LoopAsyncTask(ctx context.Context) error {
+func (e *emailService) LoopAsyncTask(ctx context.Context, callbackFn func(int, error)) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -68,7 +62,7 @@ func (e *emailSender) LoopAsyncTask(ctx context.Context) error {
 		default:
 		}
 
-		task, err := e.queue.Dequeue()
+		task, err := e.asyncQueue.Dequeue()
 		if errors.Is(err, pqueue.QueueEmptyError) {
 			time.Sleep(time.Millisecond * 500)
 			continue
@@ -79,14 +73,14 @@ func (e *emailSender) LoopAsyncTask(ctx context.Context) error {
 
 		err = e.SendMsg(ctx, task.Subject, task.FromEmail, task.TargetEmail, []byte(task.Msg))
 		if err != nil {
-			plog.Errorc(ctx, "send email to %s error: %v", task.TargetEmail, err)
-			time.Sleep(time.Millisecond * 500)
-			continue
+			plog.Errorc(ctx, "send msg error: %v", err)
 		}
+
+		callbackFn(task.Id, err)
 	}
 }
 
-func (e *emailSender) getClient(target string) (*smtp.Client, error) {
+func (e *emailService) getClient(target string) (*smtp.Client, error) {
 	conn, err := tls.Dial("tcp", e.conf.SmtpUrl(), e.tlsConf)
 	if err != nil {
 		return nil, errors.Wrap(err, "dialSmtp")
@@ -111,7 +105,7 @@ func (e *emailSender) getClient(target string) (*smtp.Client, error) {
 	return client, nil
 }
 
-func (e *emailSender) wrapMsg(subject, from, target string, msg []byte) []byte {
+func (e *emailService) wrapMsg(subject, from, target string, msg []byte) []byte {
 	subject = fmt.Sprintf("Subject: %s\r\n,", subject)
 	fromHeader := fmt.Sprintf("From: %s\r\n", from)
 	toHeader := fmt.Sprintf("To: %s\r\n", target)
@@ -122,7 +116,7 @@ func (e *emailSender) wrapMsg(subject, from, target string, msg []byte) []byte {
 	return append(data, msg...)
 }
 
-func (e *emailSender) SendMsg(ctx context.Context, subject, from, target string, msg []byte) error {
+func (e *emailService) SendMsg(ctx context.Context, subject, from, target string, msg []byte) error {
 	client, err := e.getClient(target)
 	if err != nil {
 		return errors.Wrapf(err, "getSmtpClient: %v", target)
@@ -143,6 +137,13 @@ func (e *emailSender) SendMsg(ctx context.Context, subject, from, target string,
 	return nil
 }
 
-func (e *emailSender) AsyncSendMsg(ctx context.Context, task *AsyncEmailTask) error {
-	return e.queue.Enqueue(task)
+func (e *emailService) AsyncSendMsg(ctx context.Context, id int, subject, from, target string, msg []byte) error {
+	task := &email.AsyncEmailTask{
+		Id:          id,
+		Subject:     subject,
+		FromEmail:   from,
+		TargetEmail: target,
+		Msg:         string(msg),
+	}
+	return e.asyncQueue.Enqueue(task)
 }

@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EmailSender_SendEmail_FullMethodName = "/EmailSender/SendEmail"
+	EmailSender_Send_FullMethodName      = "/EmailSender/Send"
+	EmailSender_SendAsync_FullMethodName = "/EmailSender/SendAsync"
 )
 
 // EmailSenderClient is the client API for EmailSender service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EmailSenderClient interface {
-	SendEmail(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error)
+	Send(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error)
+	SendAsync(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error)
 }
 
 type emailSenderClient struct {
@@ -37,10 +39,20 @@ func NewEmailSenderClient(cc grpc.ClientConnInterface) EmailSenderClient {
 	return &emailSenderClient{cc}
 }
 
-func (c *emailSenderClient) SendEmail(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error) {
+func (c *emailSenderClient) Send(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SendEmailResponse)
-	err := c.cc.Invoke(ctx, EmailSender_SendEmail_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, EmailSender_Send_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *emailSenderClient) SendAsync(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendEmailResponse)
+	err := c.cc.Invoke(ctx, EmailSender_SendAsync_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +63,8 @@ func (c *emailSenderClient) SendEmail(ctx context.Context, in *SendEmailRequest,
 // All implementations must embed UnimplementedEmailSenderServer
 // for forward compatibility.
 type EmailSenderServer interface {
-	SendEmail(context.Context, *SendEmailRequest) (*SendEmailResponse, error)
+	Send(context.Context, *SendEmailRequest) (*SendEmailResponse, error)
+	SendAsync(context.Context, *SendEmailRequest) (*SendEmailResponse, error)
 	mustEmbedUnimplementedEmailSenderServer()
 }
 
@@ -62,8 +75,11 @@ type EmailSenderServer interface {
 // pointer dereference when methods are called.
 type UnimplementedEmailSenderServer struct{}
 
-func (UnimplementedEmailSenderServer) SendEmail(context.Context, *SendEmailRequest) (*SendEmailResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendEmail not implemented")
+func (UnimplementedEmailSenderServer) Send(context.Context, *SendEmailRequest) (*SendEmailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
+}
+func (UnimplementedEmailSenderServer) SendAsync(context.Context, *SendEmailRequest) (*SendEmailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendAsync not implemented")
 }
 func (UnimplementedEmailSenderServer) mustEmbedUnimplementedEmailSenderServer() {}
 func (UnimplementedEmailSenderServer) testEmbeddedByValue()                     {}
@@ -86,20 +102,38 @@ func RegisterEmailSenderServer(s grpc.ServiceRegistrar, srv EmailSenderServer) {
 	s.RegisterService(&EmailSender_ServiceDesc, srv)
 }
 
-func _EmailSender_SendEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _EmailSender_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendEmailRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EmailSenderServer).SendEmail(ctx, in)
+		return srv.(EmailSenderServer).Send(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: EmailSender_SendEmail_FullMethodName,
+		FullMethod: EmailSender_Send_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EmailSenderServer).SendEmail(ctx, req.(*SendEmailRequest))
+		return srv.(EmailSenderServer).Send(ctx, req.(*SendEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmailSender_SendAsync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmailSenderServer).SendAsync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmailSender_SendAsync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmailSenderServer).SendAsync(ctx, req.(*SendEmailRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -112,8 +146,12 @@ var EmailSender_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*EmailSenderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SendEmail",
-			Handler:    _EmailSender_SendEmail_Handler,
+			MethodName: "Send",
+			Handler:    _EmailSender_Send_Handler,
+		},
+		{
+			MethodName: "SendAsync",
+			Handler:    _EmailSender_SendAsync_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

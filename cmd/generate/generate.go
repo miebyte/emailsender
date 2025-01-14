@@ -8,7 +8,25 @@
 
 package main
 
-//go:generate protoc -I ../../internal/proto --go_out=paths=source_relative:../../api/grpc/emailsendpb  --go-grpc_out=paths=source_relative:../../api/grpc/emailsendpb emailsend.proto
-func main() {
+import (
+	"gitea.hoven.com/core/emailsender/pkg/dal/model"
+	"gorm.io/gen"
+)
 
+//go:generate protoc -I ../../internal/proto --go_out=paths=source_relative:../../api/grpc/emailsendpb  --go-grpc_out=paths=source_relative:../../api/grpc/emailsendpb emailsend.proto
+//go:generate go run .
+
+func main() {
+	g := gen.NewGenerator(gen.Config{
+		OutPath:       "../../pkg/dal/base",
+		WithUnitTest:  false,
+		FieldNullable: true,
+		Mode:          gen.WithQueryInterface,
+	})
+
+	g.ApplyBasic(
+		&model.Record{},
+	)
+
+	g.Execute()
 }

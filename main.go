@@ -10,10 +10,12 @@ package main
 
 import (
 	"gitea.hoven.com/core/emailsender/app"
-	"gitea.hoven.com/core/emailsender/pkg/email"
+	"gitea.hoven.com/core/emailsender/domain/email"
+	"gitea.hoven.com/core/emailsender/pkg/dal/model"
 	"github.com/go-puzzles/puzzles/cores"
 	"github.com/go-puzzles/puzzles/goredis"
 	"github.com/go-puzzles/puzzles/pflags"
+	"github.com/go-puzzles/puzzles/pgorm"
 	"github.com/go-puzzles/puzzles/plog"
 
 	emailSenderGrpc "gitea.hoven.com/core/emailsender/api/grpc"
@@ -23,13 +25,17 @@ import (
 )
 
 var (
-	port          = pflags.Int("port", 28080, "port to listen on")
-	redisConfFlag = pflags.Struct("redis", (*goredis.RedisConf)(nil), "redis auth config")
-	emailConfFlag = pflags.Struct("email", (*email.Config)(nil), "email smtp config")
+	port            = pflags.Int("port", 28080, "port to listen on")
+	mysqlConfigFlag = pflags.Struct("mysql", (*pgorm.MysqlConfig)(nil), "mysql config")
+	redisConfFlag   = pflags.Struct("redis", (*goredis.RedisConf)(nil), "redis auth config")
+	emailConfFlag   = pflags.Struct("email", (*email.Config)(nil), "email smtp config")
 )
 
 func main() {
 	pflags.Parse()
+
+	mysqlConf := new(pgorm.MysqlConfig)
+	plog.PanicError(mysqlConfigFlag(mysqlConf))
 
 	emailConf := new(email.Config)
 	plog.PanicError(emailConfFlag(emailConf))
@@ -37,14 +43,18 @@ func main() {
 	redisConf := new(goredis.RedisConf)
 	plog.PanicError(redisConfFlag(redisConf))
 
-	redisClient := redisConf.DialRedisClient()
-	emailSender := email.NewNetEasySender(emailConf, redisClient)
+	plog.PanicError(pgorm.RegisterSqlModelWithConf(mysqlConf, model.AllTables()...))
+	plog.PanicError(pgorm.AutoMigrate(mysqlConf, pgorm.WithDialIgnoreNotFound()))
+	db := pgorm.GetDbByConf(mysqlConf)
 
-	emailSendApp := app.NewEmailSenderApp(app.NewAppContext(emailSender, redisClient))
+	redisClient := redisConf.DialRedisClient()
+
+	emailSendApp := app.NewEmailSenderApp(app.NewAppContext(db, redisClient, emailConf))
 	g := emailSenderGrpc.SetupGrpcServer(emailSendApp)
 
 	srv := cores.NewPuzzleCore(
 		cores.WithService(pflags.GetServiceName()),
+		cores.WithDaemonWorker(emailSendApp.RunEmailAsyncTask),
 		consulpuzzle.WithConsulRegister(),
 		grpcpuzzle.WithCoreGrpcPuzzle(g),
 		grpcuipuzzle.WithCoreGrpcUI(),
