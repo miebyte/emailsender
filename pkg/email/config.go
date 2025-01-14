@@ -11,7 +11,6 @@ package email
 import "errors"
 
 type Config struct {
-	From       string
 	SmtpServer string
 	SmtpPort   string
 	Identifier string
@@ -20,10 +19,6 @@ type Config struct {
 }
 
 func (c *Config) Validate() error {
-	if c.From == "" {
-		return errors.New("missing from")
-	}
-
 	if c.SmtpServer == "" {
 		return errors.New("missing smtp server")
 	}

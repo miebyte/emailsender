@@ -33,7 +33,8 @@ func NewEmailSenderGrpcServer(handler EmailHandler) *EmailSendGrpcServer {
 func (es *EmailSendGrpcServer) SendEmail(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
 	err := es.handler.SendEmail(ctx, &dto.SendEmailRequest{
 		Subject: in.GetSubject(),
-		To:      in.GetEmail(),
+		From:    in.GetFrom(),
+		To:      in.GetTo(),
 		Body:    in.GetBody(),
 	})
 

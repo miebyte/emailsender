@@ -23,16 +23,9 @@ import (
 
 type AsyncEmailTask struct {
 	Subject     string
+	FromEmail   string
 	TargetEmail string
 	Msg         string
-}
-
-func (t *AsyncEmailTask) Target() string {
-	return t.TargetEmail
-}
-
-func (t *AsyncEmailTask) Message() string {
-	return t.Msg
 }
 
 func (t *AsyncEmailTask) Key() string {
@@ -40,7 +33,7 @@ func (t *AsyncEmailTask) Key() string {
 }
 
 type EmailSender interface {
-	SendMsg(ctx context.Context, subject, target string, msg []byte) error
+	SendMsg(ctx context.Context, subject, from, target string, msg []byte) error
 	AsyncSendMsg(ctx context.Context, task *AsyncEmailTask) error
 }
 
@@ -84,9 +77,9 @@ func (e *emailSender) LoopAsyncTask(ctx context.Context) error {
 			return errors.Wrap(err, "asyncTaskDequeue")
 		}
 
-		err = e.SendMsg(ctx, task.Subject, task.Target(), []byte(task.Message()))
+		err = e.SendMsg(ctx, task.Subject, task.FromEmail, task.TargetEmail, []byte(task.Msg))
 		if err != nil {
-			plog.Errorc(ctx, "send email to %s error: %v", task.Target(), err)
+			plog.Errorc(ctx, "send email to %s error: %v", task.TargetEmail, err)
 			time.Sleep(time.Millisecond * 500)
 			continue
 		}
@@ -118,9 +111,9 @@ func (e *emailSender) getClient(target string) (*smtp.Client, error) {
 	return client, nil
 }
 
-func (e *emailSender) wrapMsg(subject, target string, msg []byte) []byte {
+func (e *emailSender) wrapMsg(subject, from, target string, msg []byte) []byte {
 	subject = fmt.Sprintf("Subject: %s\r\n,", subject)
-	fromHeader := fmt.Sprintf("From: %s\r\n", e.conf.From)
+	fromHeader := fmt.Sprintf("From: %s\r\n", from)
 	toHeader := fmt.Sprintf("To: %s\r\n", target)
 	contentTypeHeader := "Content-Type: text/plain; charset=\"UTF-8\"\r\n"
 	mimeVersionHeader := "MIME-Version: 1.0\r\n"
@@ -129,7 +122,7 @@ func (e *emailSender) wrapMsg(subject, target string, msg []byte) []byte {
 	return append(data, msg...)
 }
 
-func (e *emailSender) SendMsg(ctx context.Context, subject, target string, msg []byte) error {
+func (e *emailSender) SendMsg(ctx context.Context, subject, from, target string, msg []byte) error {
 	client, err := e.getClient(target)
 	if err != nil {
 		return errors.Wrapf(err, "getSmtpClient: %v", target)
@@ -142,7 +135,7 @@ func (e *emailSender) SendMsg(ctx context.Context, subject, target string, msg [
 	}
 	defer w.Close()
 
-	_, err = w.Write(e.wrapMsg(subject, target, msg))
+	_, err = w.Write(e.wrapMsg(subject, from, target, msg))
 	if err != nil {
 		return errors.Wrapf(err, "writeData: %v", target)
 	}

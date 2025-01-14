@@ -25,5 +25,5 @@ func NewEmailSenderApp(atx *AppContext) *EmailSendApp {
 }
 
 func (es *EmailSendApp) SendEmail(ctx context.Context, req *dto.SendEmailRequest) error {
-	return es.Atx.EmailSender.SendMsg(ctx, req.Subject, req.To, []byte(req.Body))
+	return es.Atx.EmailSender.SendMsg(ctx, req.Subject, req.From, req.To, []byte(req.Body))
 }
