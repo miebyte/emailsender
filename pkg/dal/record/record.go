@@ -61,6 +61,11 @@ func (rp *recordRepo) UpdateStatus(ctx context.Context, id int, status record.Se
 		Status: status,
 	}
 
+	if status == record.StatusSent {
+		now := time.Now()
+		updates.SentAt = &now
+	}
+
 	_, err := rp.db.Db(ctx).Record.Where(rp.db.Record.ID.Eq(id)).Updates(updates)
 	if err != nil {
 		return errors.Wrap(err, "update record status failed")
