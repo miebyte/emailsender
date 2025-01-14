@@ -30,6 +30,7 @@ type AppContext struct {
 
 	emailConf *email.Config
 	EmailSrv  email.Service
+
 	RecordSrv record.Service
 }
 
@@ -42,8 +43,8 @@ func NewAppContext(
 
 	baseDal := base.NewBaseDal(db)
 	recordRepo := recordDal.NewRecordRepo(baseDal)
-	recordService := recordSrv.NewRecordService(recordRepo)
 
+	recordService := recordSrv.NewRecordService(recordRepo)
 	emailService := emailSrv.NewEmailService(emailConf, eventBus, rdb)
 
 	registerRecordEvent(eventBus, recordService)
