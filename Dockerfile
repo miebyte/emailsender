@@ -12,7 +12,7 @@ RUN cd /app && \
 	chmod +x server
 
 # runner
-FROM alpine:latest
+FROM alpine:3.19
 ARG GO_PUZZLE_SERVICE 
 ENV GO_PUZZLE_SERVICE=$GO_PUZZLE_SERVICE
 
