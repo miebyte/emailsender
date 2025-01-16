@@ -3,12 +3,13 @@ module gitea.hoven.com/core/emailsender
 go 1.23.4
 
 require (
-	github.com/go-puzzles/puzzles v1.1.35
+	github.com/go-puzzles/puzzles v1.1.38
 	github.com/pkg/errors v0.9.1
 	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.2
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.11
+	gorm.io/plugin/dbresolver v1.5.0
 )
 
 require (
@@ -119,5 +120,4 @@ require (
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/sqlite v1.5.6 // indirect
 	gorm.io/hints v1.1.0 // indirect
-	gorm.io/plugin/dbresolver v1.5.0 // indirect
 )
