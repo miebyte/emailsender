@@ -1,9 +1,9 @@
 version: '3.8'
 services:
   emailsender:
-    build:
-      args:
-        GO_PUZZLE_SERVICE: email-sender:${VERSION} 
+    build: .
+    environment:
+      - GO_PUZZLE_SERVICE=email-sender:${VERSION}
     image: ${IMAGE}:${VERSION}
       # restart: always
     container_name: email-sender

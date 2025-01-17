@@ -13,8 +13,6 @@ RUN cd /app && \
 
 # runner
 FROM alpine:3.19
-ARG GO_PUZZLE_SERVICE 
-ENV GO_PUZZLE_SERVICE=$GO_PUZZLE_SERVICE
 
 WORKDIR /app
 COPY --from=builder /app/server /app/server
