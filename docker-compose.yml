@@ -3,8 +3,8 @@ services:
   emailsender:
     build:
       args:
-        GO_PUZZLE_SERVICE: email-sender:v1.0.0 
-    image: email-sender:latest
+        GO_PUZZLE_SERVICE: email-sender:${VERSION} 
+    image: ${IMAGE}:${VERSION}
     restart: always
     container_name: email-sender
     extra_hosts:
