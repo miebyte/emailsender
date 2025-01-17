@@ -5,14 +5,11 @@ services:
       args:
         GO_PUZZLE_SERVICE: email-sender:${VERSION} 
     image: ${IMAGE}:${VERSION}
-    restart: always
+      # restart: always
     container_name: email-sender
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    ports:
-      - 29920:29920
-    networks:
-      - yong-network
+    network_mode: host
     command:
       - ./server
       - --useRemoteConfig
@@ -20,8 +17,3 @@ services:
       options:
         max-size: 100m
         max-file: 5
-
-networks:
-  yong-network:
-    external: true
-    name: yong-network
