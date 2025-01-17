@@ -3,7 +3,7 @@ module gitea.hoven.com/core/emailsender
 go 1.23.4
 
 require (
-	github.com/go-puzzles/puzzles v1.1.38
+	github.com/go-puzzles/puzzles v1.1.39
 	github.com/pkg/errors v0.9.1
 	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.2
