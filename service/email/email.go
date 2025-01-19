@@ -83,12 +83,12 @@ func (e *emailService) LoopAsyncTask(ctx context.Context, callbackFn func(int, e
 func (e *emailService) getClient(target string) (*smtp.Client, error) {
 	conn, err := tls.Dial("tcp", e.conf.SmtpUrl(), e.tlsConf)
 	if err != nil {
-		return nil, errors.Wrap(err, "dialSmtp")
+		return nil, errors.Wrapf(err, "dialSmtp: %v", e.conf.SmtpUrl())
 	}
 
 	client, err := smtp.NewClient(conn, e.conf.SmtpServer)
 	if err != nil {
-		return nil, errors.Wrap(err, "newSmtpClient")
+		return nil, errors.Wrapf(err, "newSmtpClient: %v", e.conf.SmtpServer)
 	}
 
 	if err = client.Auth(e.auth); err != nil {
