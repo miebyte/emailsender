@@ -11,8 +11,8 @@ package app
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/app/dto"
-	"gitea.hoven.com/core/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/app/dto"
+	"github.com/go-puzzles/emailsender/domain/record"
 	"github.com/go-puzzles/puzzles/plog"
 	"github.com/pkg/errors"
 )

@@ -9,7 +9,7 @@
 package main
 
 import (
-	"gitea.hoven.com/core/emailsender/pkg/dal/model"
+	"github.com/go-puzzles/emailsender/pkg/dal/model"
 	"gorm.io/gen"
 )
 

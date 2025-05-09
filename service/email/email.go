@@ -15,8 +15,8 @@ import (
 	"net/smtp"
 	"time"
 
-	"gitea.hoven.com/core/emailsender/domain/email"
-	"gitea.hoven.com/core/emailsender/domain/event"
+	"github.com/go-puzzles/emailsender/domain/email"
+	"github.com/go-puzzles/emailsender/domain/event"
 	"github.com/go-puzzles/puzzles/goredis"
 	"github.com/go-puzzles/puzzles/plog"
 	"github.com/go-puzzles/puzzles/pqueue"

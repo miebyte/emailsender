@@ -12,9 +12,9 @@ import (
 	"context"
 	"time"
 
-	"gitea.hoven.com/core/emailsender/domain/record"
-	"gitea.hoven.com/core/emailsender/pkg/dal/base"
-	"gitea.hoven.com/core/emailsender/pkg/dal/model"
+	"github.com/go-puzzles/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/pkg/dal/base"
+	"github.com/go-puzzles/emailsender/pkg/dal/model"
 	"github.com/pkg/errors"
 )
 

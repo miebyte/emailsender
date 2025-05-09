@@ -11,7 +11,7 @@ package record
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/domain/event"
+	"github.com/go-puzzles/emailsender/domain/event"
 )
 
 type EmailStatusEvent struct {

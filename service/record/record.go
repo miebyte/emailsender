@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gitea.hoven.com/core/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/domain/record"
 )
 
 var _ record.Service = (*recordService)(nil)

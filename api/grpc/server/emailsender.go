@@ -11,8 +11,8 @@ package server
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/api/grpc/emailsendpb"
-	"gitea.hoven.com/core/emailsender/app/dto"
+	"github.com/go-puzzles/emailsender/api/grpc/emailsendpb"
+	"github.com/go-puzzles/emailsender/app/dto"
 )
 
 type EmailHandler interface {

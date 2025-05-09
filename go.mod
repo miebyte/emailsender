@@ -1,4 +1,4 @@
-module gitea.hoven.com/core/emailsender
+module github.com/go-puzzles/emailsender
 
 go 1.23.4
 

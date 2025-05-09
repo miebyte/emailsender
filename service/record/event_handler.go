@@ -3,8 +3,8 @@ package recordSrv
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/domain/event"
-	"gitea.hoven.com/core/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/domain/event"
+	"github.com/go-puzzles/emailsender/domain/record"
 )
 
 func (rs *recordService) UpdateRecordStatusEvent(ctx context.Context, evt event.Event) error {

@@ -9,16 +9,16 @@
 package main
 
 import (
-	"gitea.hoven.com/core/emailsender/app"
-	"gitea.hoven.com/core/emailsender/domain/email"
-	"gitea.hoven.com/core/emailsender/pkg/dal/model"
+	"github.com/go-puzzles/emailsender/app"
+	"github.com/go-puzzles/emailsender/domain/email"
+	"github.com/go-puzzles/emailsender/pkg/dal/model"
 	"github.com/go-puzzles/puzzles/cores"
 	"github.com/go-puzzles/puzzles/goredis"
 	"github.com/go-puzzles/puzzles/pflags"
 	"github.com/go-puzzles/puzzles/pgorm"
 	"github.com/go-puzzles/puzzles/plog"
 
-	emailSenderGrpc "gitea.hoven.com/core/emailsender/api/grpc"
+	emailSenderGrpc "github.com/go-puzzles/emailsender/api/grpc"
 	consulpuzzle "github.com/go-puzzles/puzzles/cores/puzzles/consul-puzzle"
 	grpcpuzzle "github.com/go-puzzles/puzzles/cores/puzzles/grpc-puzzle"
 	grpcuipuzzle "github.com/go-puzzles/puzzles/cores/puzzles/grpcui-puzzle"

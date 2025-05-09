@@ -11,7 +11,7 @@ package model
 import (
 	"time"
 
-	"gitea.hoven.com/core/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/domain/record"
 	"gorm.io/gorm"
 )
 

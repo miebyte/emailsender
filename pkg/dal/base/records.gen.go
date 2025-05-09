@@ -7,7 +7,7 @@ package base
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/pkg/dal/model"
+	"github.com/go-puzzles/emailsender/pkg/dal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"

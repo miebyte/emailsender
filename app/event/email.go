@@ -3,8 +3,8 @@ package event
 import (
 	"context"
 
-	"gitea.hoven.com/core/emailsender/domain/email"
-	"gitea.hoven.com/core/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/domain/email"
+	"github.com/go-puzzles/emailsender/domain/record"
 )
 
 type EmailEventHandler struct {

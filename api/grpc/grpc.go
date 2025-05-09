@@ -9,8 +9,8 @@
 package emailSenderGrpc
 
 import (
-	"gitea.hoven.com/core/emailsender/api/grpc/emailsendpb"
-	"gitea.hoven.com/core/emailsender/api/grpc/server"
+	"github.com/go-puzzles/emailsender/api/grpc/emailsendpb"
+	"github.com/go-puzzles/emailsender/api/grpc/server"
 	"google.golang.org/grpc"
 )
 

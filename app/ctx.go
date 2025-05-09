@@ -9,17 +9,17 @@
 package app
 
 import (
-	"gitea.hoven.com/core/emailsender/domain/email"
-	"gitea.hoven.com/core/emailsender/domain/event"
-	"gitea.hoven.com/core/emailsender/domain/record"
-	"gitea.hoven.com/core/emailsender/pkg/dal/base"
-	"gitea.hoven.com/core/emailsender/pkg/eventbus"
+	"github.com/go-puzzles/emailsender/domain/email"
+	"github.com/go-puzzles/emailsender/domain/event"
+	"github.com/go-puzzles/emailsender/domain/record"
+	"github.com/go-puzzles/emailsender/pkg/dal/base"
+	"github.com/go-puzzles/emailsender/pkg/eventbus"
 	"github.com/go-puzzles/puzzles/goredis"
 	"gorm.io/gorm"
 
-	recordDal "gitea.hoven.com/core/emailsender/pkg/dal/record"
-	emailSrv "gitea.hoven.com/core/emailsender/service/email"
-	recordSrv "gitea.hoven.com/core/emailsender/service/record"
+	recordDal "github.com/go-puzzles/emailsender/pkg/dal/record"
+	emailSrv "github.com/go-puzzles/emailsender/service/email"
+	recordSrv "github.com/go-puzzles/emailsender/service/record"
 )
 
 type AppContext struct {
