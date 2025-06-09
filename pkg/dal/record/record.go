@@ -12,9 +12,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-puzzles/emailsender/domain/record"
-	"github.com/go-puzzles/emailsender/pkg/dal/base"
-	"github.com/go-puzzles/emailsender/pkg/dal/model"
+	"github.com/miebyte/emailsender/domain/record"
+	"github.com/miebyte/emailsender/pkg/dal/base"
+	"github.com/miebyte/emailsender/pkg/dal/model"
 	"github.com/pkg/errors"
 )
 

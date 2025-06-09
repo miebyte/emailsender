@@ -11,7 +11,7 @@ package record
 import (
 	"context"
 
-	"github.com/go-puzzles/emailsender/domain/event"
+	"github.com/miebyte/emailsender/domain/event"
 )
 
 type EmailStatusEvent struct {

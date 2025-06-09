@@ -11,7 +11,7 @@ package model
 import (
 	"time"
 
-	"github.com/go-puzzles/emailsender/domain/record"
+	"github.com/miebyte/emailsender/domain/record"
 	"gorm.io/gorm"
 )
 

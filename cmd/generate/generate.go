@@ -9,7 +9,7 @@
 package main
 
 import (
-	"github.com/go-puzzles/emailsender/pkg/dal/model"
+	"github.com/miebyte/emailsender/pkg/dal/model"
 	"gorm.io/gen"
 )
 

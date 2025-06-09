@@ -8,10 +8,8 @@
 
 package model
 
-import "github.com/go-puzzles/puzzles/pgorm"
-
-func AllTables() []pgorm.SqlModel {
-	return []pgorm.SqlModel{
+func AllTables() []any {
+	return []any{
 		&Record{},
 	}
 }

@@ -9,8 +9,8 @@
 package emailSenderGrpc
 
 import (
-	"github.com/go-puzzles/emailsender/api/grpc/emailsendpb"
-	"github.com/go-puzzles/emailsender/api/grpc/server"
+	"github.com/miebyte/emailsender/api/grpc/emailsendpb"
+	"github.com/miebyte/emailsender/api/grpc/server"
 	"google.golang.org/grpc"
 )
 

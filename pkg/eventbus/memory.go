@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/go-puzzles/emailsender/domain/event"
+	"github.com/miebyte/emailsender/domain/event"
 )
 
 type memoryEventBus struct {

@@ -9,56 +9,52 @@
 package main
 
 import (
-	"github.com/go-puzzles/emailsender/app"
-	"github.com/go-puzzles/emailsender/domain/email"
-	"github.com/go-puzzles/emailsender/pkg/dal/model"
-	"github.com/go-puzzles/puzzles/cores"
-	"github.com/go-puzzles/puzzles/goredis"
-	"github.com/go-puzzles/puzzles/pflags"
-	"github.com/go-puzzles/puzzles/pgorm"
-	"github.com/go-puzzles/puzzles/plog"
+	"github.com/miebyte/emailsender/app"
+	"github.com/miebyte/emailsender/domain/email"
+	"github.com/miebyte/emailsender/pkg/dal/model"
+	"github.com/miebyte/goutils/cores"
+	"github.com/miebyte/goutils/flags"
+	"github.com/miebyte/goutils/logging"
+	"github.com/miebyte/goutils/mysqlutils"
+	"github.com/miebyte/goutils/redisutils"
 
-	emailSenderGrpc "github.com/go-puzzles/emailsender/api/grpc"
-	consulpuzzle "github.com/go-puzzles/puzzles/cores/puzzles/consul-puzzle"
-	grpcpuzzle "github.com/go-puzzles/puzzles/cores/puzzles/grpc-puzzle"
-	grpcuipuzzle "github.com/go-puzzles/puzzles/cores/puzzles/grpcui-puzzle"
+	emailSenderGrpc "github.com/miebyte/emailsender/api/grpc"
 )
 
 var (
-	port            = pflags.Int("port", 28080, "port to listen on")
-	mysqlConfigFlag = pflags.Struct("mysql", (*pgorm.MysqlConfig)(nil), "mysql config")
-	redisConfFlag   = pflags.Struct("redis", (*goredis.RedisConf)(nil), "redis auth config")
-	emailConfFlag   = pflags.Struct("email", (*email.Config)(nil), "email smtp config")
+	port            = flags.Int("port", 28080, "port to listen on")
+	mysqlConfigFlag = flags.Struct("mysql", (*mysqlutils.MysqlConfig)(nil), "mysql config")
+	redisConfFlag   = flags.Struct("redis", (*redisutils.RedisConfig)(nil), "redis auth config")
+	emailConfFlag   = flags.Struct("email", (*email.Config)(nil), "email smtp config")
 )
 
 func main() {
-	pflags.Parse()
+	flags.Parse()
 
-	mysqlConf := new(pgorm.MysqlConfig)
-	plog.PanicError(mysqlConfigFlag(mysqlConf))
+	mysqlConf := new(mysqlutils.MysqlConfig)
+	logging.PanicError(mysqlConfigFlag(mysqlConf))
 
 	emailConf := new(email.Config)
-	plog.PanicError(emailConfFlag(emailConf))
+	logging.PanicError(emailConfFlag(emailConf))
 
-	redisConf := new(goredis.RedisConf)
-	plog.PanicError(redisConfFlag(redisConf))
+	redisConf := new(redisutils.RedisConfig)
+	logging.PanicError(redisConfFlag(redisConf))
 
-	plog.PanicError(pgorm.RegisterSqlModelWithConf(mysqlConf, model.AllTables()...))
-	plog.PanicError(pgorm.AutoMigrate(mysqlConf, pgorm.WithDialIgnoreNotFound()))
-	db := pgorm.GetDbByConf(mysqlConf)
+	db, err := mysqlConf.DialMysqlGorm()
+	logging.PanicError(err)
+	logging.PanicError(db.AutoMigrate(model.AllTables()...))
 
-	redisClient := redisConf.DialRedisClient()
+	redisClient, err := redisConf.DialGORedisClient()
+	logging.PanicError(err)
 
 	emailSendApp := app.NewEmailSenderApp(app.NewAppContext(db, redisClient, emailConf))
 	g := emailSenderGrpc.SetupGrpcServer(emailSendApp)
 
-	srv := cores.NewPuzzleCore(
-		cores.WithService(pflags.GetServiceName()),
-		cores.WithDaemonWorker(emailSendApp.RunEmailAsyncTask),
-		consulpuzzle.WithConsulRegister(),
-		grpcpuzzle.WithCoreGrpcPuzzle(g),
-		grpcuipuzzle.WithCoreGrpcUI(),
+	srv := cores.NewCores(
+		cores.WithWorker(emailSendApp.RunEmailAsyncTask),
+		cores.WithGrpcServer(g),
+		cores.WithGrpcUI(),
 	)
 
-	plog.PanicError(cores.Start(srv, port()))
+	logging.PanicError(cores.Start(srv, port()))
 }

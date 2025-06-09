@@ -9,34 +9,31 @@
 package app
 
 import (
-	"github.com/go-puzzles/emailsender/domain/email"
-	"github.com/go-puzzles/emailsender/domain/event"
-	"github.com/go-puzzles/emailsender/domain/record"
-	"github.com/go-puzzles/emailsender/pkg/dal/base"
-	"github.com/go-puzzles/emailsender/pkg/eventbus"
-	"github.com/go-puzzles/puzzles/goredis"
+	"github.com/miebyte/emailsender/domain/email"
+	"github.com/miebyte/emailsender/domain/event"
+	"github.com/miebyte/emailsender/domain/record"
+	"github.com/miebyte/emailsender/pkg/dal/base"
+	"github.com/miebyte/emailsender/pkg/eventbus"
+	"github.com/miebyte/goutils/redisutils"
 	"gorm.io/gorm"
 
-	recordDal "github.com/go-puzzles/emailsender/pkg/dal/record"
-	emailSrv "github.com/go-puzzles/emailsender/service/email"
-	recordSrv "github.com/go-puzzles/emailsender/service/record"
+	recordDal "github.com/miebyte/emailsender/pkg/dal/record"
+	emailSrv "github.com/miebyte/emailsender/service/email"
+	recordSrv "github.com/miebyte/emailsender/service/record"
 )
 
 type AppContext struct {
-	MysqlDb *base.BaseDal
-	RedisDb *goredis.PuzzleRedisClient
-
-	EventBus event.EventBus
-
+	MysqlDb   *base.BaseDal
+	RedisDb   *redisutils.RedisClient
+	EventBus  event.EventBus
 	emailConf *email.Config
 	EmailSrv  email.Service
-
 	RecordSrv record.Service
 }
 
 func NewAppContext(
 	db *gorm.DB,
-	rdb *goredis.PuzzleRedisClient,
+	rdb *redisutils.RedisClient,
 	emailConf *email.Config,
 ) *AppContext {
 	eventBus := eventbus.NewMemoryEventBus()

@@ -11,9 +11,9 @@ package app
 import (
 	"context"
 
-	"github.com/go-puzzles/emailsender/app/dto"
-	"github.com/go-puzzles/emailsender/domain/record"
-	"github.com/go-puzzles/puzzles/plog"
+	"github.com/miebyte/emailsender/app/dto"
+	"github.com/miebyte/emailsender/domain/record"
+	"github.com/miebyte/goutils/logging"
 	"github.com/pkg/errors"
 )
 
@@ -36,7 +36,7 @@ func (es *EmailSendApp) RunEmailAsyncTask(ctx context.Context) error {
 
 		err = es.Atx.EventBus.Publish(ctx, &record.EmailStatusEvent{ID: i, Status: int(status)})
 		if err != nil {
-			plog.Errorc(ctx, "publish email status event failed: %v", err)
+			logging.Errorc(ctx, "publish email status event failed: %v", err)
 			return
 		}
 	}
@@ -47,7 +47,7 @@ func (es *EmailSendApp) RunEmailAsyncTask(ctx context.Context) error {
 func (es *EmailSendApp) SendEmail(ctx context.Context, req *dto.SendEmailRequest) error {
 	err := es.Atx.EmailSrv.SendMsg(ctx, req.Subject, req.From, req.To, []byte(req.Body))
 	if err != nil {
-		plog.Errorc(ctx, "send email failed: %v", err)
+		logging.Errorc(ctx, "send email failed: %v", err)
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (es *EmailSendApp) SendEmail(ctx context.Context, req *dto.SendEmailRequest
 
 	_, err = es.Atx.RecordSrv.CreateRecord(ctx, r)
 	if err != nil {
-		plog.Errorc(ctx, "create email record failed: %v", err)
+		logging.Errorc(ctx, "create email record failed: %v", err)
 		return errors.Wrap(err, "createSentRecord")
 	}
 
@@ -67,13 +67,13 @@ func (es *EmailSendApp) SendEmailAsync(ctx context.Context, req *dto.SendEmailRe
 
 	r, err = es.Atx.RecordSrv.CreateRecord(ctx, r)
 	if err != nil {
-		plog.Errorc(ctx, "create email record failed: %v", err)
+		logging.Errorc(ctx, "create email record failed: %v", err)
 		return errors.Wrap(err, "createAsyncRecord")
 	}
 
 	err = es.Atx.EmailSrv.AsyncSendMsg(ctx, r.ID, req.Subject, req.From, req.To, []byte(req.Body))
 	if err != nil {
-		plog.Errorc(ctx, "send email async failed: %v", err)
+		logging.Errorc(ctx, "send email async failed: %v", err)
 		return errors.Wrap(err, "sendAsyncEmail")
 	}
 

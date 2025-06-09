@@ -7,7 +7,7 @@ package base
 import (
 	"context"
 
-	"github.com/go-puzzles/emailsender/pkg/dal/model"
+	"github.com/miebyte/emailsender/pkg/dal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"

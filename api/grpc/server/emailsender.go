@@ -11,8 +11,8 @@ package server
 import (
 	"context"
 
-	"github.com/go-puzzles/emailsender/api/grpc/emailsendpb"
-	"github.com/go-puzzles/emailsender/app/dto"
+	"github.com/miebyte/emailsender/api/grpc/emailsendpb"
+	"github.com/miebyte/emailsender/app/dto"
 )
 
 type EmailHandler interface {

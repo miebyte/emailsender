@@ -15,11 +15,11 @@ import (
 	"net/smtp"
 	"time"
 
-	"github.com/go-puzzles/emailsender/domain/email"
-	"github.com/go-puzzles/emailsender/domain/event"
-	"github.com/go-puzzles/puzzles/goredis"
-	"github.com/go-puzzles/puzzles/plog"
-	"github.com/go-puzzles/puzzles/pqueue"
+	"github.com/miebyte/emailsender/domain/email"
+	"github.com/miebyte/emailsender/domain/event"
+	"github.com/miebyte/goutils/logging"
+	"github.com/miebyte/goutils/queueutils"
+	"github.com/miebyte/goutils/redisutils"
 	"github.com/pkg/errors"
 )
 
@@ -30,13 +30,13 @@ type emailService struct {
 	auth       smtp.Auth
 	tlsConf    *tls.Config
 	eventBus   event.EventBus
-	asyncQueue *pqueue.RedisQueue[*email.AsyncEmailTask]
+	asyncQueue *queueutils.RedisQueue[*email.AsyncEmailTask]
 }
 
 func NewEmailService(
 	conf *email.Config,
 	eventBus event.EventBus,
-	redisClient *goredis.PuzzleRedisClient,
+	redisClient *redisutils.RedisClient,
 ) *emailService {
 	auth := smtp.PlainAuth("", conf.Identifier, conf.Credential, conf.SmtpServer)
 	tlsConfig := &tls.Config{
@@ -44,7 +44,7 @@ func NewEmailService(
 		ServerName:         conf.SmtpServer,
 	}
 
-	asyncQueue := pqueue.NewRedisQueueWithClient[*email.AsyncEmailTask](redisClient, conf.AsyncQueue)
+	asyncQueue := queueutils.NewRedisQueueWithClient[*email.AsyncEmailTask](redisClient, conf.AsyncQueue)
 	return &emailService{
 		conf:       conf,
 		auth:       auth,
@@ -63,17 +63,17 @@ func (e *emailService) LoopAsyncTask(ctx context.Context, callbackFn func(int, e
 		}
 
 		task, err := e.asyncQueue.Dequeue()
-		if errors.Is(err, pqueue.QueueEmptyError) {
+		if errors.Is(err, queueutils.QueueEmptyError) {
 			time.Sleep(time.Millisecond * 500)
 			continue
 		} else if err != nil {
-			plog.Errorc(ctx, "async task dequeue error: %v", err)
+			logging.Errorc(ctx, "async task dequeue error: %v", err)
 			return errors.Wrap(err, "asyncTaskDequeue")
 		}
 
 		err = e.SendMsg(ctx, task.Subject, task.FromEmail, task.TargetEmail, []byte(task.Msg))
 		if err != nil {
-			plog.Errorc(ctx, "send msg error: %v", err)
+			logging.Errorc(ctx, "send msg error: %v", err)
 		}
 
 		callbackFn(task.Id, err)

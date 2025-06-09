@@ -3,8 +3,8 @@ package event
 import (
 	"context"
 
-	"github.com/go-puzzles/emailsender/domain/email"
-	"github.com/go-puzzles/emailsender/domain/record"
+	"github.com/miebyte/emailsender/domain/email"
+	"github.com/miebyte/emailsender/domain/record"
 )
 
 type EmailEventHandler struct {
