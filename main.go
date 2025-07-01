@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	port            = flags.Int("port", 28080, "port to listen on")
+	port            = flags.Int("port", 28081, "port to listen on")
 	mysqlConfigFlag = flags.Struct("mysql", (*mysqlutils.MysqlConfig)(nil), "mysql config")
 	redisConfFlag   = flags.Struct("redis", (*redisutils.RedisConfig)(nil), "redis auth config")
 	emailConfFlag   = flags.Struct("email", (*email.Config)(nil), "email smtp config")
