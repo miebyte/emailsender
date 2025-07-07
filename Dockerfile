@@ -1,13 +1,11 @@
 # builder
-FROM golang:1.24.4-alpine AS builder
+FROM registry.hoven.top/library/golang:1.24.4 AS builder
 
 WORKDIR /app
 COPY ./ /app
 
-ENV GO111MODULE=auto
-ENV GOPROXY="http://10.15.25.11:8081"
+ENV GOPROXY="https://goproxy.hoven.top,direct"
 
-RUN apk add --no-cache git
 RUN cd /app && \
 	go mod tidy && \
 	go build -o ./server && \
