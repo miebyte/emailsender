@@ -5,7 +5,8 @@ WORKDIR /app
 COPY ./ /app
 
 ENV GO111MODULE=auto
-ENV GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY="http://10.15.25.11:8081"
+
 RUN cd /app && \
 	go mod tidy && \
 	go build -o ./server && \
