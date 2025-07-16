@@ -3,7 +3,7 @@ module github.com/miebyte/emailsender
 go 1.24.1
 
 require (
-	github.com/miebyte/goutils v1.0.4-rc1
+	github.com/miebyte/goutils v1.0.4-rc2
 	github.com/pkg/errors v0.9.1
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
