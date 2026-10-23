@@ -1,0 +1,28 @@
+{
+  "config": {
+    "grpc_port": 28082,
+    "queue_name": "emailsender:tasks",
+    "mysql": {
+      "instance": "127.0.0.1:3306",
+      "database": "emailsender",
+      "username": "emailsender",
+      "password": "CHANGE_ME",
+      "charset": "utf8mb4",
+      "pool_size": 20
+    },
+    "redis": {
+      "server": "127.0.0.1:6379",
+      "db": 0,
+      "timeout": 2,
+      "context_timeout_enabled": true,
+      "max_retries": -1
+    },
+    "smtp": {
+      "host": "smtp.example.com",
+      "port": 465,
+      "username": "sender@example.com",
+      "password": "CHANGE_ME",
+      "timeout_seconds": 30
+    }
+  }
+}

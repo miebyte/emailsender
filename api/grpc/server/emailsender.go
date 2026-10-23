@@ -10,14 +10,18 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	"github.com/miebyte/emailsender/api/grpc/emailsendpb"
-	"github.com/miebyte/emailsender/app/dto"
+	"github.com/miebyte/emailsender/internal/email"
+	"github.com/miebyte/goutils/logging"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type EmailHandler interface {
-	SendEmail(ctx context.Context, req *dto.SendEmailRequest) error
-	SendEmailAsync(ctx context.Context, req *dto.SendEmailRequest) error
+	Send(context.Context, email.Message) error
+	SendAsync(context.Context, email.Message) error
 }
 
 type EmailSendGrpcServer struct {
@@ -32,7 +36,7 @@ func NewEmailSenderGrpcServer(handler EmailHandler) *EmailSendGrpcServer {
 }
 
 func (es *EmailSendGrpcServer) Send(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
-	err := es.handler.SendEmail(ctx, &dto.SendEmailRequest{
+	err := es.handler.Send(ctx, email.Message{
 		Subject: in.GetSubject(),
 		From:    in.GetFrom(),
 		To:      in.GetTo(),
@@ -40,14 +44,14 @@ func (es *EmailSendGrpcServer) Send(ctx context.Context, in *emailsendpb.SendEma
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, rpcError(ctx, err)
 	}
 
 	return &emailsendpb.SendEmailResponse{}, nil
 }
 
 func (es *EmailSendGrpcServer) SendAsync(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
-	err := es.handler.SendEmailAsync(ctx, &dto.SendEmailRequest{
+	err := es.handler.SendAsync(ctx, email.Message{
 		Subject: in.GetSubject(),
 		From:    in.GetFrom(),
 		To:      in.GetTo(),
@@ -55,8 +59,24 @@ func (es *EmailSendGrpcServer) SendAsync(ctx context.Context, in *emailsendpb.Se
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, rpcError(ctx, err)
 	}
 
 	return &emailsendpb.SendEmailResponse{}, nil
+}
+
+func rpcError(ctx context.Context, err error) error {
+	if !errors.Is(err, email.ErrInvalidMessage) {
+		logging.Errorc(ctx, "email request failed: %v", err)
+	}
+	switch {
+	case errors.Is(err, email.ErrInvalidMessage):
+		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, context.Canceled) && errors.Is(ctx.Err(), context.Canceled):
+		return status.Error(codes.Canceled, "request canceled")
+	case errors.Is(err, context.DeadlineExceeded) && errors.Is(ctx.Err(), context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "request deadline exceeded")
+	default:
+		return status.Error(codes.Internal, "email request failed")
+	}
 }

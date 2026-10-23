@@ -1,32 +1,25 @@
-// File:		generate.go
-// Created by:	Hoven
-// Created on:	2025-01-13
-//
-// This file is part of the Example Project.
-//
-// (c) 2024 Example Corp. All rights reserved.
-
 package main
 
 import (
-	"github.com/miebyte/emailsender/pkg/dal/model"
+	"flag"
+
+	"github.com/miebyte/emailsender/internal/storage/models"
 	"gorm.io/gen"
 )
 
-//go:generate protoc -I ../../internal/proto --go_out=paths=source_relative:../../api/grpc/emailsendpb  --go-grpc_out=paths=source_relative:../../api/grpc/emailsendpb emailsend.proto
-//go:generate go run .
+//go:generate go run . -out ../../internal/storage/query
 
 func main() {
+	out := flag.String("out", "internal/storage/query", "generated query directory")
+	flag.Parse()
+
 	g := gen.NewGenerator(gen.Config{
-		OutPath:       "../../pkg/dal/base",
+		OutPath:       *out,
 		WithUnitTest:  false,
 		FieldNullable: true,
 		Mode:          gen.WithQueryInterface,
 	})
 
-	g.ApplyBasic(
-		&model.Record{},
-	)
-
+	g.ApplyBasic(models.AllModels()...)
 	g.Execute()
 }

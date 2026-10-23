@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/miebyte/emailsender/api/emailsendpb;emailsendpb";
+option go_package = "github.com/miebyte/emailsender/api/grpc/emailsendpb;emailsendpb";
 
 
 service EmailSender {

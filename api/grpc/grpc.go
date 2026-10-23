@@ -14,13 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type EmailSendApp interface {
-	server.EmailHandler
-}
-
-func SetupGrpcServer(a EmailSendApp) func(srv *grpc.Server) {
-	return func(srv *grpc.Server) {
-		emailSendServer := server.NewEmailSenderGrpcServer(a)
-		emailsendpb.RegisterEmailSenderServer(srv, emailSendServer)
-	}
+func SetupGrpcServer(srv *grpc.Server, a server.EmailHandler) {
+	emailSendServer := server.NewEmailSenderGrpcServer(a)
+	emailsendpb.RegisterEmailSenderServer(srv, emailSendServer)
 }
