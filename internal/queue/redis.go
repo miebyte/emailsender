@@ -22,12 +22,10 @@ type RedisQueue struct {
 var _ email.TaskQueue = (*RedisQueue)(nil)
 
 func NewRedisQueue(client *redisutils.RedisClient, name string, timeout time.Duration) (*RedisQueue, error) {
-	if client == nil || client.Client == nil {
-		return nil, errors.New("redis client is required")
-	}
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("email queue name is required")
 	}
+
 	if timeout <= 0 {
 		return nil, errors.New("redis timeout must be positive")
 	}
@@ -38,12 +36,15 @@ func (q *RedisQueue) Enqueue(ctx context.Context, task email.Task) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
 	operationCtx, cancel := context.WithTimeout(ctx, q.timeout)
 	defer cancel()
+
 	data, err := json.Marshal(task)
 	if err != nil {
 		return fmt.Errorf("encode email task: %w", err)
 	}
+
 	if err := q.client.RPush(operationCtx, q.name, data).Err(); err != nil {
 		return fmt.Errorf("enqueue email task: %w", queueError(ctx, operationCtx, err))
 	}

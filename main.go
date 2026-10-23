@@ -38,10 +38,6 @@ func run() error {
 	logging.PanicError(err)
 	logging.PanicError(db.AutoMigrate(models.AllModels()...))
 
-	sqlDB, err := db.DB()
-	logging.PanicError(err)
-	defer sqlDB.Close()
-
 	redisClient, err := conf.Redis.DialGORedisClient()
 	logging.PanicError(err)
 	defer redisClient.Close()

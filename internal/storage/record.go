@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -19,9 +18,6 @@ type RecordStore struct {
 }
 
 func NewRecordStore(db *gorm.DB) (*RecordStore, error) {
-	if db == nil {
-		return nil, errors.New("record database is required")
-	}
 	return &RecordStore{q: query.Use(db)}, nil
 }
 
