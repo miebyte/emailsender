@@ -1,0 +1,41 @@
+name: Docker Image CI
+
+on:
+  push:
+    tags:
+      - 'server/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image tag
+        id: vars
+        run: |
+          echo "image_tag=${GITHUB_REF_NAME#server/}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          build-args: |
+            BINARY_NAME=emailsender
+            VERSION=${{ steps.vars.outputs.image_tag }}
+          push: true
+          provenance: false
+          sbom: false
+          tags: crpi-zl1i6kvg9tgjh9f7.cn-shenzhen.personal.cr.aliyuncs.com/hoven-prod/emailsender:${{ steps.vars.outputs.image_tag }}
