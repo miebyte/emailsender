@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	emailgrpc "github.com/miebyte/emailsender/api/grpc"
@@ -13,6 +14,7 @@ import (
 	"github.com/miebyte/goutils/cores"
 	"github.com/miebyte/goutils/flags/v2"
 	"github.com/miebyte/goutils/logging"
+	"github.com/miebyte/goutils/share"
 	"google.golang.org/grpc"
 )
 
@@ -21,12 +23,16 @@ var (
 	configFlag = flags.Struct("config", &config.Config{}, "email sender configs")
 )
 
+func init() {
+	share.SetServiceName("emailsender")
+}
+
 func main() {
 	logging.PanicError(run())
 }
 
 func run() error {
-	flags.Parse(flags.WithRemoteConfig(flags.WithServiceName("email_sender")))
+	flags.Parse(flags.WithRemoteConfig())
 	defer flags.Close()
 
 	loader, err := configFlag()
@@ -57,8 +63,10 @@ func run() error {
 	grpcServer := grpc.NewServer()
 	emailgrpc.SetupGrpcServer(grpcServer, service)
 	srv := cores.NewCores(
+		cores.WithInternalHTTPAddress(fmt.Sprintf(":%d", port())),
+		cores.WithServiceAddress(conf.GrpcAddr()),
+		cores.WithGrpcServer(grpcServer),
 		cores.WithWorker(service.Run, time.Duration(conf.Redis.Timeout)*time.Second+10*time.Second),
-		cores.WithGrpcServer(conf.GrpcAddr(), grpcServer),
 	)
-	return cores.Start(srv, port())
+	return cores.Start(srv)
 }
