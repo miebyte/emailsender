@@ -66,6 +66,7 @@ func run() error {
 		cores.WithInternalHTTPAddress(fmt.Sprintf(":%d", port())),
 		cores.WithServiceAddress(conf.GrpcAddr()),
 		cores.WithGrpcServer(grpcServer),
+		cores.WithConsulRegister(),
 		cores.WithWorker(service.Run, time.Duration(conf.Redis.Timeout)*time.Second+10*time.Second),
 	)
 	return cores.Start(srv)
