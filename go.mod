@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/miebyte/goutils v1.15.0
+	github.com/miebyte/goutils v1.15.1
 	github.com/redis/go-redis/v9 v9.22.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
