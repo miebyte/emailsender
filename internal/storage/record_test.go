@@ -63,8 +63,8 @@ func TestCreateRecordsSentTimeOnlyForSentEmail(t *testing.T) {
 			sentAt = nonzeroTime{}
 		}
 		mock.ExpectBegin()
-		mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `records` (`from`,`to`,`subject`,`body`,`status`,`sent_at`,`created_at`,`updated_at`) VALUES (?,?,?,?,?,?,?,?)")).
-			WithArgs(message.From, message.To, message.Subject, message.Body, int(status), sentAt, nonzeroTime{}, nonzeroTime{}).
+		mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `records` (`from`,`to`,`subject`,`body`,`content_type`,`status`,`sent_at`,`created_at`,`updated_at`) VALUES (?,?,?,?,?,?,?,?,?)")).
+			WithArgs(message.From, message.To, message.Subject, message.Body, "text/plain", int(status), sentAt, nonzeroTime{}, nonzeroTime{}).
 			WillReturnResult(sqlmock.NewResult(42, 1))
 		mock.ExpectCommit()
 		id, err := store.Create(context.Background(), message, status)
@@ -74,6 +74,30 @@ func TestCreateRecordsSentTimeOnlyForSentEmail(t *testing.T) {
 		if id != 42 {
 			t.Fatalf("create returned ID %d, want 42", id)
 		}
+	}
+}
+
+func TestCreatePersistsContentType(t *testing.T) {
+	for _, contentType := range []string{"", "text/plain", "text/html"} {
+		t.Run(contentType, func(t *testing.T) {
+			store, mock := newTestStore(t)
+			message := email.Message{
+				From: "from@example.com", To: "to@example.com", Subject: "subject", Body: "<p>body</p>",
+				ContentType: contentType,
+			}
+			wantContentType := contentType
+			if wantContentType == "" {
+				wantContentType = "text/plain"
+			}
+			mock.ExpectBegin()
+			mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `records` (`from`,`to`,`subject`,`body`,`content_type`,`status`,`sent_at`,`created_at`,`updated_at`) VALUES (?,?,?,?,?,?,?,?,?)")).
+				WithArgs(message.From, message.To, message.Subject, message.Body, wantContentType, int(email.StatusWaiting), nil, nonzeroTime{}, nonzeroTime{}).
+				WillReturnResult(sqlmock.NewResult(42, 1))
+			mock.ExpectCommit()
+			if _, err := store.Create(context.Background(), message, email.StatusWaiting); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 

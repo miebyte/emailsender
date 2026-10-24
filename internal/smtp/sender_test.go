@@ -26,49 +26,75 @@ import (
 	"github.com/miebyte/emailsender/internal/email"
 )
 
-func TestSenderDeliversPlainTextAndAcceptsFailedQuit(t *testing.T) {
-	sender, server := newTestSMTP(t, smtpBehavior{rejectQuit: true})
-	message := email.Message{
-		From:    "通知 <visible@example.com>",
-		To:      "收件人 <recipient@example.com>",
-		Subject: "测试主题",
-		Body:    "您好，正文\n第二行\n",
+func TestSenderDeliversContentTypesAndAcceptsFailedQuit(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		contentType string
+		wantType    string
+		body        string
+	}{
+		{"default plain text", "", "text/plain", "您好，<b>正文</b>\n第二行\n"},
+		{"explicit plain text", "text/plain", "text/plain", "您好，正文\n第二行\n"},
+		{"HTML", "text/html", "text/html", "<h1>您好</h1>\n<p>第二行 &amp; 正文</p>\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sender, server := newTestSMTP(t, smtpBehavior{rejectQuit: true})
+			message := email.Message{
+				From:        "通知 <visible@example.com>",
+				To:          "收件人 <recipient@example.com>",
+				Subject:     "测试主题",
+				Body:        tc.body,
+				ContentType: tc.contentType,
+			}
+			if err := sender.Send(context.Background(), message); err != nil {
+				t.Fatal(err)
+			}
+			result := <-server.result
+			if result.err != nil {
+				t.Fatal(result.err)
+			}
+			if result.from != "MAIL FROM:<account@example.com>" || result.to != "RCPT TO:<recipient@example.com>" {
+				t.Fatalf("unexpected envelope: from=%q to=%q", result.from, result.to)
+			}
+			parsed, err := mail.ReadMessage(bytes.NewReader(result.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			from, err := mail.ParseAddress(parsed.Header.Get("From"))
+			if err != nil || from.Address != "visible@example.com" || from.Name != "通知" {
+				t.Fatalf("unexpected From header: %q (%v)", parsed.Header.Get("From"), err)
+			}
+			subject, err := (&mime.WordDecoder{}).DecodeHeader(parsed.Header.Get("Subject"))
+			if err != nil || subject != message.Subject {
+				t.Fatalf("unexpected subject: %q (%v)", subject, err)
+			}
+			contentType, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
+			if err != nil || contentType != tc.wantType || params["charset"] != "UTF-8" {
+				t.Fatalf("unexpected content type: %q (%v)", parsed.Header.Get("Content-Type"), err)
+			}
+			if parsed.Header.Get("MIME-Version") != "1.0" || parsed.Header.Get("Content-Transfer-Encoding") != "quoted-printable" {
+				t.Fatal("missing MIME headers")
+			}
+			if _, err := parsed.Header.Date(); err != nil {
+				t.Fatalf("invalid Date header: %v", err)
+			}
+			body, err := io.ReadAll(quotedprintable.NewReader(parsed.Body))
+			if err != nil || strings.ReplaceAll(string(body), "\r\n", "\n") != message.Body {
+				t.Fatalf("unexpected body: %q (%v)", body, err)
+			}
+		})
 	}
-	if err := sender.Send(context.Background(), message); err != nil {
-		t.Fatal(err)
-	}
-	result := <-server.result
-	if result.err != nil {
-		t.Fatal(result.err)
-	}
-	if result.from != "MAIL FROM:<account@example.com>" || result.to != "RCPT TO:<recipient@example.com>" {
-		t.Fatalf("unexpected envelope: from=%q to=%q", result.from, result.to)
-	}
-	parsed, err := mail.ReadMessage(bytes.NewReader(result.data))
-	if err != nil {
-		t.Fatal(err)
-	}
-	from, err := mail.ParseAddress(parsed.Header.Get("From"))
-	if err != nil || from.Address != "visible@example.com" || from.Name != "通知" {
-		t.Fatalf("unexpected From header: %q (%v)", parsed.Header.Get("From"), err)
-	}
-	subject, err := (&mime.WordDecoder{}).DecodeHeader(parsed.Header.Get("Subject"))
-	if err != nil || subject != message.Subject {
-		t.Fatalf("unexpected subject: %q (%v)", subject, err)
-	}
-	contentType, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
-	if err != nil || contentType != "text/plain" || params["charset"] != "UTF-8" {
-		t.Fatalf("unexpected content type: %q (%v)", parsed.Header.Get("Content-Type"), err)
-	}
-	if parsed.Header.Get("MIME-Version") != "1.0" || parsed.Header.Get("Content-Transfer-Encoding") != "quoted-printable" {
-		t.Fatal("missing MIME headers")
-	}
-	if _, err := parsed.Header.Date(); err != nil {
-		t.Fatalf("invalid Date header: %v", err)
-	}
-	body, err := io.ReadAll(quotedprintable.NewReader(parsed.Body))
-	if err != nil || strings.ReplaceAll(string(body), "\r\n", "\n") != message.Body {
-		t.Fatalf("unexpected body: %q (%v)", body, err)
+}
+
+func TestBuildMessageRejectsInvalidContentType(t *testing.T) {
+	for _, contentType := range []string{"application/json", "text/html; charset=UTF-8", "text/html\r\nBcc: other@example.com"} {
+		t.Run(contentType, func(t *testing.T) {
+			message := testMessage()
+			message.ContentType = contentType
+			if _, _, err := buildMessage(message); !errors.Is(err, email.ErrInvalidMessage) {
+				t.Fatalf("expected invalid message, got %v", err)
+			}
+		})
 	}
 }
 

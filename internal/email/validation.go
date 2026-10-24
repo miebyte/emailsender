@@ -28,5 +28,10 @@ func (m Message) Validate() error {
 	if !utf8.ValidString(m.Body) || len(m.Body) > 65535 {
 		return fmt.Errorf("%w: body must be valid UTF-8 of at most 65535 bytes", ErrInvalidMessage)
 	}
+	switch m.ContentType {
+	case "", "text/plain", "text/html":
+	default:
+		return fmt.Errorf("%w: content_type must be text/plain or text/html", ErrInvalidMessage)
+	}
 	return nil
 }

@@ -22,6 +22,9 @@ type RedisQueue struct {
 var _ email.TaskQueue = (*RedisQueue)(nil)
 
 func NewRedisQueue(client *redisutils.RedisClient, name string, timeout time.Duration) (*RedisQueue, error) {
+	if client == nil {
+		return nil, errors.New("redis client is required")
+	}
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("email queue name is required")
 	}

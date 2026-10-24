@@ -18,6 +18,9 @@ type Service struct {
 }
 
 func NewService(sender Sender, queue TaskQueue, records RecordStore) (*Service, error) {
+	if sender == nil || queue == nil || records == nil {
+		return nil, errors.New("email sender, queue and record store are required")
+	}
 	return &Service{sender: sender, queue: queue, records: records}, nil
 }
 

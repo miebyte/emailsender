@@ -27,30 +27,41 @@ func (f fakeHandler) SendAsync(ctx context.Context, message email.Message) error
 }
 
 func TestEmailRPCForwardsMessageAndContext(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		body        string
+	}{
+		{"legacy plain text", "", "body"},
+		{"explicit plain text", "text/plain", "body"},
+		{"HTML", "text/html", "<h1>你好</h1><p>HTML body</p>"},
+	}
 	for _, async := range []bool{false, true} {
-		t.Run(fmt.Sprint("async=", async), func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			expected := email.Message{From: "sender@example.com", To: "receiver@example.com", Subject: "subject", Body: "body"}
-			called := false
-			srv := NewEmailSenderGrpcServer(fakeHandler{send: func(gotCtx context.Context, got email.Message) error {
-				if gotCtx != ctx || got != expected {
-					t.Fatalf("unexpected application call: %v", got)
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("async=%v/%s", async, tt.name), func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				expected := email.Message{From: "sender@example.com", To: "receiver@example.com", Subject: "subject", Body: tt.body, ContentType: tt.contentType}
+				called := false
+				srv := NewEmailSenderGrpcServer(fakeHandler{send: func(gotCtx context.Context, got email.Message) error {
+					if gotCtx != ctx || got != expected {
+						t.Fatalf("unexpected application call: %v", got)
+					}
+					called = true
+					return nil
+				}})
+				rpc := srv.Send
+				if async {
+					rpc = srv.SendAsync
 				}
-				called = true
-				return nil
-			}})
-			rpc := srv.Send
-			if async {
-				rpc = srv.SendAsync
-			}
-			response, err := rpc(ctx, &emailsendpb.SendEmailRequest{
-				From: expected.From, To: expected.To, Subject: expected.Subject, Body: expected.Body,
+				response, err := rpc(ctx, &emailsendpb.SendEmailRequest{
+					From: expected.From, To: expected.To, Subject: expected.Subject, Body: expected.Body, ContentType: expected.ContentType,
+				})
+				if err != nil || response == nil || !called {
+					t.Fatalf("expected successful empty response: response=%v called=%v err=%v", response, called, err)
+				}
 			})
-			if err != nil || response == nil || !called {
-				t.Fatalf("expected successful empty response: response=%v called=%v err=%v", response, called, err)
-			}
-		})
+		}
 	}
 }
 

@@ -41,6 +41,12 @@ func testQueue(t *testing.T, process func(context.Context, redis.Cmder) error) *
 	return q
 }
 
+func TestNewRedisQueueRequiresClient(t *testing.T) {
+	if _, err := NewRedisQueue(nil, "emails", time.Second); err == nil {
+		t.Fatal("expected an error for a missing Redis client")
+	}
+}
+
 func TestQueueTaskRoundTrip(t *testing.T) {
 	task := email.Task{ID: 7, Message: email.Message{
 		From: "sender@example.com", To: "recipient@example.com", Subject: "hello", Body: "body",
@@ -81,6 +87,58 @@ func TestQueueTaskRoundTrip(t *testing.T) {
 	decoded, err := q.Dequeue(ctx)
 	if err != nil || decoded != task {
 		t.Fatalf("dequeue = %+v, %v", decoded, err)
+	}
+}
+
+func TestQueueHTMLTaskRoundTrip(t *testing.T) {
+	task := email.Task{ID: 7, Message: email.Message{
+		From: "sender@example.com", To: "recipient@example.com", Subject: "hello", Body: "<p>body</p>",
+		ContentType: "text/html",
+	}}
+	var queued []byte
+	q := testQueue(t, func(_ context.Context, cmd redis.Cmder) error {
+		switch cmd.Name() {
+		case "rpush":
+			queued = cmd.Args()[2].([]byte)
+			cmd.(*redis.IntCmd).SetVal(1)
+		case "blpop":
+			cmd.(*redis.StringSliceCmd).SetVal([]string{"emails", string(queued)})
+		default:
+			t.Fatalf("unexpected command %s", cmd.Name())
+		}
+		return nil
+	})
+	if err := q.Enqueue(context.Background(), task); err != nil {
+		t.Fatal(err)
+	}
+	var payload struct {
+		Message struct {
+			ContentType string `json:"content_type"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal(queued, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Message.ContentType != "text/html" {
+		t.Fatalf("unexpected task payload: %s", queued)
+	}
+	decoded, err := q.Dequeue(context.Background())
+	if err != nil || decoded != task {
+		t.Fatalf("dequeue = %+v, %v", decoded, err)
+	}
+}
+
+func TestDequeueAcceptsLegacyTaskWithoutContentType(t *testing.T) {
+	q := testQueue(t, func(_ context.Context, cmd redis.Cmder) error {
+		cmd.(*redis.StringSliceCmd).SetVal([]string{"emails", `{"id":7,"message":{"from":"sender@example.com","to":"recipient@example.com","subject":"hello","body":"body"}}`})
+		return nil
+	})
+	task, err := q.Dequeue(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task.ID != 7 || task.Message.Body != "body" || task.Message.ContentType != "" {
+		t.Fatalf("unexpected legacy task: %+v", task)
 	}
 }
 

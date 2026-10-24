@@ -22,11 +22,13 @@ const (
 )
 
 type SendEmailRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	From          string                 `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
-	To            string                 `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
-	Subject       string                 `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
-	Body          string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	From    string                 `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	To      string                 `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	Subject string                 `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
+	Body    string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	// Empty defaults to text/plain; only text/plain and text/html are supported.
+	ContentType   string `protobuf:"bytes,5,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -89,6 +91,13 @@ func (x *SendEmailRequest) GetBody() string {
 	return ""
 }
 
+func (x *SendEmailRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
 type SendEmailResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -129,12 +138,13 @@ var File_emailsend_proto protoreflect.FileDescriptor
 
 const file_emailsend_proto_rawDesc = "" +
 	"\n" +
-	"\x0femailsend.proto\"d\n" +
+	"\x0femailsend.proto\"\x87\x01\n" +
 	"\x10SendEmailRequest\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\x12\x12\n" +
-	"\x04body\x18\x04 \x01(\tR\x04body\"\x13\n" +
+	"\x04body\x18\x04 \x01(\tR\x04body\x12!\n" +
+	"\fcontent_type\x18\x05 \x01(\tR\vcontentType\"\x13\n" +
 	"\x11SendEmailResponse2t\n" +
 	"\vEmailSender\x12/\n" +
 	"\x04Send\x12\x11.SendEmailRequest\x1a\x12.SendEmailResponse\"\x00\x124\n" +

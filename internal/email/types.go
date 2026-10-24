@@ -19,10 +19,11 @@ var (
 )
 
 type Message struct {
-	From    string `json:"from"`
-	To      string `json:"to"`
-	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Subject     string `json:"subject"`
+	Body        string `json:"body"`
+	ContentType string `json:"content_type,omitempty"`
 }
 
 type Task struct {

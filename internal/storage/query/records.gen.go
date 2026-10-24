@@ -31,6 +31,7 @@ func newRecord(db *gorm.DB, opts ...gen.DOOption) record {
 	_record.To = field.NewString(tableName, "to")
 	_record.Subject = field.NewString(tableName, "subject")
 	_record.Body = field.NewString(tableName, "body")
+	_record.ContentType = field.NewString(tableName, "content_type")
 	_record.Status = field.NewInt(tableName, "status")
 	_record.SentAt = field.NewTime(tableName, "sent_at")
 	_record.CreatedAt = field.NewTime(tableName, "created_at")
@@ -44,16 +45,17 @@ func newRecord(db *gorm.DB, opts ...gen.DOOption) record {
 type record struct {
 	recordDo recordDo
 
-	ALL       field.Asterisk
-	ID        field.Int
-	From      field.String
-	To        field.String
-	Subject   field.String
-	Body      field.String
-	Status    field.Int
-	SentAt    field.Time
-	CreatedAt field.Time
-	UpdatedAt field.Time
+	ALL         field.Asterisk
+	ID          field.Int
+	From        field.String
+	To          field.String
+	Subject     field.String
+	Body        field.String
+	ContentType field.String
+	Status      field.Int
+	SentAt      field.Time
+	CreatedAt   field.Time
+	UpdatedAt   field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -75,6 +77,7 @@ func (r *record) updateTableName(table string) *record {
 	r.To = field.NewString(table, "to")
 	r.Subject = field.NewString(table, "subject")
 	r.Body = field.NewString(table, "body")
+	r.ContentType = field.NewString(table, "content_type")
 	r.Status = field.NewInt(table, "status")
 	r.SentAt = field.NewTime(table, "sent_at")
 	r.CreatedAt = field.NewTime(table, "created_at")
@@ -103,12 +106,13 @@ func (r *record) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (r *record) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 9)
+	r.fieldMap = make(map[string]field.Expr, 10)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["from"] = r.From
 	r.fieldMap["to"] = r.To
 	r.fieldMap["subject"] = r.Subject
 	r.fieldMap["body"] = r.Body
+	r.fieldMap["content_type"] = r.ContentType
 	r.fieldMap["status"] = r.Status
 	r.fieldMap["sent_at"] = r.SentAt
 	r.fieldMap["created_at"] = r.CreatedAt

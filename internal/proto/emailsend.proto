@@ -13,6 +13,8 @@ message SendEmailRequest {
 	string to = 2;
 	string subject = 3;
 	string body = 4;
+	// Empty defaults to text/plain; only text/plain and text/html are supported.
+	string content_type = 5;
 }
 
 message SendEmailResponse {

@@ -100,23 +100,26 @@ func TestNewServiceRequiresDependencies(t *testing.T) {
 func TestSendPreservesSuccessfulResultAfterCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	message := validMessage
+	message.ContentType = "text/html"
+	message.Body = "<p>您好</p>"
 	var calls []string
-	s := newTestService(t, fakeSender{send: func(gotCtx context.Context, message Message) error {
-		if gotCtx != ctx || message != validMessage {
+	s := newTestService(t, fakeSender{send: func(gotCtx context.Context, got Message) error {
+		if gotCtx != ctx || got != message {
 			t.Fatal("sender did not receive request context and message")
 		}
 		calls = append(calls, "send")
 		cancel()
 		return nil
-	}}, fakeQueue{}, fakeRecords{create: func(recordCtx context.Context, message Message, status Status) (int, error) {
+	}}, fakeQueue{}, fakeRecords{create: func(recordCtx context.Context, got Message, status Status) (int, error) {
 		assertResultContext(t, recordCtx)
-		if message != validMessage || status != StatusSent {
+		if got != message || status != StatusSent {
 			t.Fatal("successful SMTP send must create a sent record")
 		}
 		calls = append(calls, "record")
 		return 1, nil
 	}})
-	if err := s.Send(ctx, validMessage); err != nil {
+	if err := s.Send(ctx, message); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(calls, []string{"send", "record"}) {
@@ -149,21 +152,24 @@ func TestSendReturnsRecordFailure(t *testing.T) {
 
 func TestSendAsyncCreatesRecordBeforeEnqueue(t *testing.T) {
 	ctx := context.Background()
+	message := validMessage
+	message.ContentType = "text/html"
+	message.Body = "<p>您好</p>"
 	var calls []string
 	s := newTestService(t, fakeSender{}, fakeQueue{enqueue: func(queueCtx context.Context, task Task) error {
-		if queueCtx != ctx || task != (Task{ID: 42, Message: validMessage}) {
+		if queueCtx != ctx || task != (Task{ID: 42, Message: message}) {
 			t.Fatal("queue did not receive stored task and request context")
 		}
 		calls = append(calls, "enqueue")
 		return nil
-	}}, fakeRecords{create: func(recordCtx context.Context, message Message, status Status) (int, error) {
-		if recordCtx != ctx || message != validMessage || status != StatusWaiting {
+	}}, fakeRecords{create: func(recordCtx context.Context, got Message, status Status) (int, error) {
+		if recordCtx != ctx || got != message || status != StatusWaiting {
 			t.Fatal("expected waiting record and request context")
 		}
 		calls = append(calls, "create")
 		return 42, nil
 	}})
-	if err := s.SendAsync(ctx, validMessage); err != nil {
+	if err := s.SendAsync(ctx, message); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(calls, []string{"create", "enqueue"}) {
@@ -243,12 +249,42 @@ func TestServiceRejectsInvalidOrCanceledInputBeforeIO(t *testing.T) {
 	}
 }
 
+func TestServiceRejectsInvalidContentTypeBeforeIO(t *testing.T) {
+	s := newTestService(t, fakeSender{send: func(context.Context, Message) error {
+		t.Fatal("invalid content type reached SMTP")
+		return nil
+	}}, fakeQueue{enqueue: func(context.Context, Task) error {
+		t.Fatal("invalid content type reached the queue")
+		return nil
+	}}, fakeRecords{create: func(context.Context, Message, Status) (int, error) {
+		t.Fatal("invalid content type reached storage")
+		return 0, nil
+	}})
+	message := validMessage
+	message.ContentType = "application/json"
+	for _, async := range []bool{false, true} {
+		send := s.Send
+		if async {
+			send = s.SendAsync
+		}
+		if err := send(context.Background(), message); !errors.Is(err, ErrInvalidMessage) {
+			t.Fatalf("async=%v: expected invalid message, got %v", async, err)
+		}
+	}
+}
+
 func TestRunContinuesAfterSMTPFailureAndPersistsResults(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	message := validMessage
+	message.ContentType = "text/html"
+	message.Body = "<p>您好</p>"
 	var dequeued, sent int
 	var statuses []Status
-	s := newTestService(t, fakeSender{send: func(context.Context, Message) error {
+	s := newTestService(t, fakeSender{send: func(_ context.Context, got Message) error {
+		if got != message {
+			t.Fatalf("worker changed the HTML message: %+v", got)
+		}
 		sent++
 		if sent == 1 {
 			return errors.New("SMTP temporarily rejected")
@@ -257,7 +293,7 @@ func TestRunContinuesAfterSMTPFailureAndPersistsResults(t *testing.T) {
 		return nil
 	}}, fakeQueue{dequeue: func(context.Context) (Task, error) {
 		dequeued++
-		return Task{ID: dequeued, Message: validMessage}, nil
+		return Task{ID: dequeued, Message: message}, nil
 	}}, fakeRecords{update: func(recordCtx context.Context, id int, status Status) error {
 		assertResultContext(t, recordCtx)
 		if id != len(statuses)+1 {
@@ -271,6 +307,30 @@ func TestRunContinuesAfterSMTPFailureAndPersistsResults(t *testing.T) {
 	}
 	if sent != 2 || dequeued != 2 || !reflect.DeepEqual(statuses, []Status{StatusFailed, StatusSent}) {
 		t.Fatalf("unexpected processing: sent=%d dequeued=%d statuses=%v", sent, dequeued, statuses)
+	}
+}
+
+func TestRunRejectsInvalidContentType(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	message := validMessage
+	message.ContentType = "text/html\r\nBcc: other@example.com"
+	updated := false
+	s := newTestService(t, fakeSender{send: func(context.Context, Message) error {
+		t.Fatal("invalid queued message reached SMTP")
+		return nil
+	}}, fakeQueue{dequeue: func(context.Context) (Task, error) {
+		return Task{ID: 42, Message: message}, nil
+	}}, fakeRecords{update: func(_ context.Context, id int, status Status) error {
+		if id != 42 || status != StatusFailed {
+			t.Fatal("invalid queued message must be marked failed")
+		}
+		updated = true
+		cancel()
+		return nil
+	}})
+	if err := s.Run(ctx); !errors.Is(err, context.Canceled) || !updated {
+		t.Fatalf("expected failed result then cancellation: updated=%v err=%v", updated, err)
 	}
 }
 
@@ -369,6 +429,11 @@ func TestMessageValidation(t *testing.T) {
 	}{
 		{"valid", validMessage, true},
 		{"empty optional fields", Message{From: validMessage.From, To: validMessage.To}, true},
+		{"plain text", Message{From: validMessage.From, To: validMessage.To, ContentType: "text/plain"}, true},
+		{"HTML", Message{From: validMessage.From, To: validMessage.To, ContentType: "text/html"}, true},
+		{"unsupported content type", Message{From: validMessage.From, To: validMessage.To, ContentType: "application/json"}, false},
+		{"content type parameters", Message{From: validMessage.From, To: validMessage.To, ContentType: "text/html; charset=UTF-8"}, false},
+		{"content type CRLF", Message{From: validMessage.From, To: validMessage.To, ContentType: "text/html\r\nBcc: other@example.com"}, false},
 		{"empty from", Message{To: validMessage.To}, false},
 		{"empty to", Message{From: validMessage.From}, false},
 		{"invalid address", Message{From: validMessage.From, To: "not an email"}, false},

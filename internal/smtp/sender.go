@@ -11,7 +11,6 @@ import (
 	"net/mail"
 	netsmtp "net/smtp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/miebyte/emailsender/internal/email"
@@ -106,8 +105,8 @@ func sendError(ctx context.Context, operation string, err error) error {
 }
 
 func buildMessage(message email.Message) ([]byte, string, error) {
-	if strings.ContainsAny(message.From+message.To+message.Subject, "\r\n") {
-		return nil, "", fmt.Errorf("%w: invalid email header", email.ErrInvalidMessage)
+	if err := message.Validate(); err != nil {
+		return nil, "", err
 	}
 	from, err := mail.ParseAddress(message.From)
 	if err != nil {
@@ -120,7 +119,11 @@ func buildMessage(message email.Message) ([]byte, string, error) {
 	var data bytes.Buffer
 	fmt.Fprintf(&data, "From: %s\r\nTo: %s\r\nSubject: %s\r\n", from.String(), to.String(), mime.QEncoding.Encode("UTF-8", message.Subject))
 	fmt.Fprintf(&data, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
-	data.WriteString("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n")
+	contentType := message.ContentType
+	if contentType == "" {
+		contentType = "text/plain"
+	}
+	fmt.Fprintf(&data, "MIME-Version: 1.0\r\nContent-Type: %s; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", contentType)
 	writer := quotedprintable.NewWriter(&data)
 	if _, err := writer.Write([]byte(message.Body)); err != nil {
 		return nil, "", fmt.Errorf("encode email body: %w", err)

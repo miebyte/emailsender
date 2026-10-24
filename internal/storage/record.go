@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,19 +19,27 @@ type RecordStore struct {
 }
 
 func NewRecordStore(db *gorm.DB) (*RecordStore, error) {
+	if db == nil {
+		return nil, errors.New("database is required")
+	}
 	return &RecordStore{q: query.Use(db)}, nil
 }
 
 func (s *RecordStore) Create(ctx context.Context, message email.Message, status email.Status) (int, error) {
 	now := time.Now()
+	contentType := message.ContentType
+	if contentType == "" {
+		contentType = "text/plain"
+	}
 	record := &models.Record{
-		From:      message.From,
-		To:        message.To,
-		Subject:   message.Subject,
-		Body:      message.Body,
-		Status:    int(status),
-		CreatedAt: now,
-		UpdatedAt: now,
+		From:        message.From,
+		To:          message.To,
+		Subject:     message.Subject,
+		Body:        message.Body,
+		ContentType: contentType,
+		Status:      int(status),
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	if status == email.StatusSent {
 		record.SentAt = &now

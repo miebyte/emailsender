@@ -1,6 +1,6 @@
 # emailsender
 
-一个提供 gRPC 接口的轻量邮件发送代理，支持同步发送、Redis 异步队列和 MySQL 发送记录。邮件为 UTF-8 纯文本，通过 SMTP 直接 TLS 连接发送。
+一个提供 gRPC 接口的轻量邮件发送代理，支持同步发送、Redis 异步队列和 MySQL 发送记录。邮件支持 UTF-8 纯文本和 HTML，通过 SMTP 直接 TLS 连接发送。
 
 ## 结构
 
@@ -19,11 +19,11 @@ cmd/generate/             GORM 查询生成入口
 
 基础设施与启动使用 `goutils`，Redis 连接由 `main` 通过 `redisutils.NewRedisPool` 创建、启动验证并关闭，队列仅接收客户端。`redisutils` 负责 ACL、连接/读写超时、Context deadline 和重试配置。
 
-`emailutils` 固定发送 HTML 且不支持 Context/超时，`queueutils.RedisQueue` 内部使用 Background Context，因此这两处保留小型适配器，分别处理纯文本 SMTP 和带操作期限的 Redis 队列命令。
+`emailutils` 固定发送 HTML 且不支持 Context/超时，`queueutils.RedisQueue` 内部使用 Background Context，因此这两处保留小型适配器，分别处理支持正文格式选择的 SMTP 和带操作期限的 Redis 队列命令。
 
 ## 运行
 
-需要 Go 1.27、MySQL、Redis，以及支持直接 TLS 的 SMTP 服务（通常为 465 端口）。先创建空的 `emailsender` 数据库；启动会通过 `models.AllModels()` 自动建表。
+需要 Go 1.27、MySQL、Redis，以及支持直接 TLS 的 SMTP 服务（通常为 465 端口）。先创建空的 `emailsender` 数据库；启动会通过 `models.AllModels()` 自动建表。升级后，AutoMigrate 会新增 `content_type` 列，旧记录默认使用 `text/plain`。
 
 当前 Redis 配置扩展尚未发布库版本，`go.mod` 使用相对路径 `replace github.com/miebyte/goutils => ../goutils`，需要将修改后的 goutils 源码放在本项目同级目录。发布包含这些改动的新版本后，可升级依赖并移除该替换。
 
@@ -41,12 +41,24 @@ go run . --configFile config.json
 
 ## 接口与发送行为
 
-`internal/proto/emailsend.proto` 定义两个 RPC，均接收 `from`、`to`、`subject`、`body`，响应为空：
+`internal/proto/emailsend.proto` 定义两个 RPC，均接收 `from`、`to`、`subject`、`body` 和可选的 `content_type`，响应为空：
 
 - `EmailSender.Send`：等待 SMTP 接受邮件，再记录发送成功。
 - `EmailSender.SendAsync`：创建待发送记录并入队后返回，Worker 发送后更新状态。
 
 每次调用支持一个收件人。`from` 和 `to` 支持带显示名称的邮箱地址，各最多 320 个字符；主题最多 255 个字符，正文最多 65535 字节。请求必须为合法 UTF-8，邮件头禁止换行。SMTP 信封发件人使用配置中的账号，邮件展示的 From 使用请求值，SMTP 服务可能对此施加限制。
+
+`content_type` 仅支持 `text/plain` 和 `text/html`；省略或传空字符串时默认使用 `text/plain`，兼容现有调用。传入其他值会返回 gRPC `InvalidArgument`。发送 HTML 时，将 HTML 源码放入 `body`，并设置 `content_type: "text/html"`；同步和异步发送均支持此参数。例如，已创建的 Go gRPC 客户端可这样调用：
+
+```go
+_, err := client.Send(ctx, &emailsendpb.SendEmailRequest{
+	From:        "sender@example.com",
+	To:          "receiver@example.com",
+	Subject:     "HTML 邮件",
+	Body:        "<h1>你好</h1><p>这是一封 HTML 邮件。</p>",
+	ContentType: "text/html",
+})
+```
 
 异步入队失败时会尝试把记录标为失败；失败补偿或最终状态更新失败会报告错误。发送失败记录为失败状态并继续消费下一封；队列故障或状态持久化失败会使 Worker 报错，由 `cores` 停止服务。进程退出时，已开始发送的任务会在有限时间内尝试写回结果。
 

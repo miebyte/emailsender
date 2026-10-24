@@ -37,10 +37,11 @@ func NewEmailSenderGrpcServer(handler EmailHandler) *EmailSendGrpcServer {
 
 func (es *EmailSendGrpcServer) Send(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
 	err := es.handler.Send(ctx, email.Message{
-		Subject: in.GetSubject(),
-		From:    in.GetFrom(),
-		To:      in.GetTo(),
-		Body:    in.GetBody(),
+		Subject:     in.GetSubject(),
+		From:        in.GetFrom(),
+		To:          in.GetTo(),
+		Body:        in.GetBody(),
+		ContentType: in.GetContentType(),
 	})
 
 	if err != nil {
@@ -52,10 +53,11 @@ func (es *EmailSendGrpcServer) Send(ctx context.Context, in *emailsendpb.SendEma
 
 func (es *EmailSendGrpcServer) SendAsync(ctx context.Context, in *emailsendpb.SendEmailRequest) (*emailsendpb.SendEmailResponse, error) {
 	err := es.handler.SendAsync(ctx, email.Message{
-		Subject: in.GetSubject(),
-		From:    in.GetFrom(),
-		To:      in.GetTo(),
-		Body:    in.GetBody(),
+		Subject:     in.GetSubject(),
+		From:        in.GetFrom(),
+		To:          in.GetTo(),
+		Body:        in.GetBody(),
+		ContentType: in.GetContentType(),
 	})
 
 	if err != nil {
